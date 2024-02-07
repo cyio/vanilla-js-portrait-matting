@@ -5,13 +5,35 @@ body {
 
 .container {
     margin: 40px auto;
-    width: max(50vw, 400px);
+    width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
 }
 
-.custom-file-upload {
+.wrap {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.left-column,
+.right-column {
+    flex: 1;
+    padding: 10px;
+    box-sizing: border-box;
+    max-height: 500px;
+}
+
+@media (max-width: 508px) {
+
+    .left-column,
+    .right-column {
+        flex: 100%;
+    }
+}
+
+.custom-file-select {
     display: flex;
     align-items: center;
     cursor: pointer;
@@ -19,25 +41,23 @@ body {
     border: 2px solid black;
     padding: 8px 16px;
     cursor: pointer;
-	border-radius: 6px;
+    border-radius: 6px;
 }
 
-#file-upload {
+#file-select {
     display: none;
 }
 
-.upload-icon {
-    width: 30px;
+#out-container {
+    width: 400px;
+    height: 500px;
 }
 
-#image-container {
+img {
     width: 100%;
-    margin-top: 20px;
-    position: relative;
-}
-
-#image-container>img {
-    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border: 1px dashed rgba(128, 128, 128, 0.5);
 }
 
 .bounding-box {

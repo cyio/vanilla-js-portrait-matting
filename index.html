@@ -5,30 +5,22 @@
     <meta charset="UTF-8" />
     <link rel="stylesheet" href="style.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Transformers.js - Object Detection demo</title>
+    <title>Portrait Matting demo</title>
 </head>
 
 <body>
     <main class="container">
-        <label class="custom-file-upload">
-            <input id="file-upload" type="file" accept="image/*" />
-            <img class="upload-icon" src="https://huggingface.co/datasets/Xenova/transformers.js-docs/resolve/main/upload-icon.png" />
-            Upload image
+        <label class="custom-file-select">
+            <input id="file-select" type="file" accept="image/*" />
+            select image
         </label>
-        <div id="image-container"></div>
-        <img id="output-image"></img>
         <p id="status"></p>
+        <div class="wrap">
+            <div id="image-container" class="left-column"></div>
+            <div id="output-container" class="right-column"></div>    
+        </div>
     </main>
-    <script src="./test4.js" type="module"></script>
+    <script src="./index.js" type="module"></script>
 </body>
-
-<style>
-    canvas, img {
-        width: 50%;
-    }
-    img {
-        background: #c0bbbb;
-    }
-</style>
 
 </html>

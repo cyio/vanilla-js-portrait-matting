@@ -1,5 +1,5 @@
 ---
-title: Vanilla Js Object Detector
+title: Vanilla Js Portrait Matting
 emoji: 🐠
 colorFrom: indigo
 colorTo: blue
@@ -7,4 +7,10 @@ sdk: static
 pinned: false
 ---
 
-Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+# Vanilla Js Portrait Matting
+
+Based [ZHKKKe/MODNet](https://github.com/ZHKKKe/MODNet) and [Transformers.js](https://huggingface.co/docs/transformers.js/index)
+
+Run: `npx live-server`
+
+Currently incompatible with Vite.

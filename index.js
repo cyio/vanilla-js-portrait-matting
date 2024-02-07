@@ -1,73 +1,119 @@
-import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.15.0';
+import { AutoProcessor, RawImage, AutoModel } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers';
 
-// Since we will download the model from the Hugging Face Hub, we can skip the local model check
-env.allowLocalModels = false;
-
-// Reference the elements that we will need
 const status = document.getElementById('status');
-const fileUpload = document.getElementById('file-upload');
+const fileSelect = document.getElementById('file-select');
 const imageContainer = document.getElementById('image-container');
+const outputContainer = document.getElementById('output-container');
 
-// Create a new object detection pipeline
 status.textContent = 'Loading model...';
-const detector = await pipeline('object-detection', 'Xenova/detr-resnet-50');
+
+// Load model and processor
+const model = await AutoModel.from_pretrained('Xenova/modnet-onnx', { quantized: false });
+const processor = await AutoProcessor.from_pretrained('Xenova/modnet-onnx');
+
 status.textContent = 'Ready';
+// Load image from URL
+const url = 'https://images.pexels.com/photos/5965592/pexels-photo-5965592.jpeg?auto=compress&cs=tinysrgb&w=1024';
+function useRemoteImage(url) {
+  const image = document.createElement('img');
+  image.src = url;
+  imageContainer.appendChild(image);
+  start(url);
+}
+useRemoteImage(url)
 
-fileUpload.addEventListener('change', function (e) {
-    const file = e.target.files[0];
-    if (!file) {
-        return;
-    }
+fileSelect.addEventListener('change', function (e) {
+  const file = e.target.files[0];
+  if (!file) {
+    return;
+  }
 
-    const reader = new FileReader();
+  const reader = new FileReader();
 
-    // Set up a callback when the file is loaded
-    reader.onload = function (e2) {
-        imageContainer.innerHTML = '';
-        const image = document.createElement('img');
-        image.src = e2.target.result;
-        imageContainer.appendChild(image);
-        detect(image);
-    };
-    reader.readAsDataURL(file);
+  // Set up a callback when the file is loaded
+  reader.onload = function (e2) {
+    status.textContent = 'Image loaded';
+
+    imageContainer.innerHTML = '';
+    outputContainer.innerHTML = '';
+    const image = document.createElement('img');
+    image.src = e2.target.result;
+    imageContainer.appendChild(image);
+    start(image.src);
+  };
+  reader.readAsDataURL(file);
 });
 
+async function start(source) {
+  status.textContent = 'processing';
+  console.log('start process')
 
-// Detect objects in the image
-async function detect(img) {
-    status.textContent = 'Analysing...';
-    const output = await detector(img.src, {
-        threshold: 0.5,
-        percentage: true,
+  const image = await RawImage.read(source);
+  // Process image
+  const { pixel_values: input } = await processor(image);
+
+  // Predict alpha matte
+  const { output } = await model({ input });
+  console.log('image', RawImage)
+
+  // Convert output tensor to RawImage
+  const matteImage = await RawImage.fromTensor(output[0].mul(255).to('uint8')).resize(image.width, image.height);
+
+  console.log('matteImage', matteImage, output)
+  status.textContent = 'Finish';
+
+  async function renderRawImage(image) {
+    let rawCanvas = await image.toCanvas();
+    const canvas = document.createElement('canvas');
+    outputContainer.appendChild(canvas); // 将新创建的 Canvas 添加到页面中
+    canvas.width = image.width;
+    canvas.height = image.height;
+
+    const ctx = canvas.getContext('2d');
+
+    ctx.drawImage(rawCanvas, 0, 0);
+
+  }
+
+  // renderRawImage(matteImage)
+
+  async function getForeground(rawImage, maskImage) {
+    const rawCanvas = rawImage.toCanvas();
+    const rawCtx = rawCanvas.getContext('2d');
+
+    const maskCanvas = maskImage.toCanvas();
+    const maskCtx = maskCanvas.getContext('2d');
+
+    const rawImageData = rawCtx.getImageData(0, 0, rawCanvas.width, rawCanvas.height);
+    const maskImageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+
+    for (let i = 0; i < rawImageData.data.length; i += 4) {
+      // 把灰度通道值（RGB 都一样，这里取 R），赋到原图的透明通道（每个像素的第 4 个值）
+      rawImageData.data[i + 3] = maskImageData.data[i];
+    }
+
+    rawCtx.putImageData(rawImageData, 0, 0);
+    return rawCanvas;
+  }
+
+  let foregroundCanvas = await getForeground(image, matteImage);
+
+  // 使用示例：
+  console.log('debug', foregroundCanvas);
+  // 模拟异步操作，确保在完成操作后才继续执行
+  foregroundCanvas.convertToBlob()
+    .then(function (blob) {
+      // 创建图片
+      let img = new Image();
+
+      // 创建 blob URL 并设置为图片的 src
+      img.src = URL.createObjectURL(blob);
+
+      // 将图片添加到 body 中或者其他 HTML 元素
+      outputContainer.appendChild(img);
+    })
+    .catch(function (error) {
+      // 捕获和处理 blob 创建过程中可能出现的错误
+      console.error("Blob creation error: ", error);
     });
-    status.textContent = '';
-    output.forEach(renderBox);
-}
-
-// Render a bounding box and label on the image
-function renderBox({ box, label }) {
-    const { xmax, xmin, ymax, ymin } = box;
-
-    // Generate a random color for the box
-    const color = '#' + Math.floor(Math.random() * 0xFFFFFF).toString(16).padStart(6, 0);
-
-    // Draw the box
-    const boxElement = document.createElement('div');
-    boxElement.className = 'bounding-box';
-    Object.assign(boxElement.style, {
-        borderColor: color,
-        left: 100 * xmin + '%',
-        top: 100 * ymin + '%',
-        width: 100 * (xmax - xmin) + '%',
-        height: 100 * (ymax - ymin) + '%',
-    });
-
-    // Draw label
-    const labelElement = document.createElement('span');
-    labelElement.textContent = label;
-    labelElement.className = 'bounding-box-label';
-    labelElement.style.backgroundColor = color;
-
-    boxElement.appendChild(labelElement);
-    imageContainer.appendChild(boxElement);
 }
