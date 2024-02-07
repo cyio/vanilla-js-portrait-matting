@@ -6,6 +6,8 @@ const imageContainer = document.getElementById('image-container');
 const outputContainer = document.getElementById('output-container');
 
 status.textContent = 'Loading model...';
+let startTime = null;
+let endTime = null;
 
 // Load model and processor
 const model = await AutoModel.from_pretrained('Xenova/modnet-onnx', { quantized: false });
@@ -16,9 +18,10 @@ status.textContent = 'Ready';
 const url = 'https://images.pexels.com/photos/5965592/pexels-photo-5965592.jpeg?auto=compress&cs=tinysrgb&w=1024';
 function useRemoteImage(url) {
   const image = document.createElement('img');
+  image.crossOrigin = "anonymous";
   image.src = url;
   imageContainer.appendChild(image);
-  start(url);
+  setTimeout(() => start(url), 0)
 }
 useRemoteImage(url)
 
@@ -39,12 +42,13 @@ fileSelect.addEventListener('change', function (e) {
     const image = document.createElement('img');
     image.src = e2.target.result;
     imageContainer.appendChild(image);
-    start(image.src);
+    setTimeout(() => start(image.src), 0)
   };
   reader.readAsDataURL(file);
 });
 
 async function start(source) {
+  startTime = new Date();
   status.textContent = 'processing';
   console.log('start process')
 
@@ -60,7 +64,6 @@ async function start(source) {
   const matteImage = await RawImage.fromTensor(output[0].mul(255).to('uint8')).resize(image.width, image.height);
 
   console.log('matteImage', matteImage, output)
-  status.textContent = 'Finish';
 
   async function renderRawImage(image) {
     let rawCanvas = await image.toCanvas();
@@ -111,6 +114,9 @@ async function start(source) {
 
       // 将图片添加到 body 中或者其他 HTML 元素
       outputContainer.appendChild(img);
+      endTime = new Date();
+      const diff = (endTime - startTime) / 1000
+      setTimeout(() => status.textContent = 'Finish: ' + diff + 's', 0)
     })
     .catch(function (error) {
       // 捕获和处理 blob 创建过程中可能出现的错误
