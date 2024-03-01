@@ -90,6 +90,7 @@ async function start(source) {
     const rawImageData = rawCtx.getImageData(0, 0, rawCanvas.width, rawCanvas.height);
     const maskImageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
 
+    // 遍历所有像素点，将透明通道的值改为抠图的对应值
     for (let i = 0; i < rawImageData.data.length; i += 4) {
       // 把灰度通道值（RGB 都一样，这里取 R），赋到原图的透明通道（每个像素的第 4 个值）
       rawImageData.data[i + 3] = maskImageData.data[i];
